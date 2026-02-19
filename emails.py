@@ -179,6 +179,6 @@ TEMPLATES = {
 
 SUBJECTS = {
     "sample": lambda d: "Je Mattori Frame\u00B3 sample aanvraag is ontvangen",
-    "contact": lambda d: f"Leuk dat je interesse hebt, {d.get('naam', '')}",
+    "contact": lambda d: f"Fijn dat je contact opneemt, {d.get('naam', '')}",
     "verzending": lambda d: "Je Mattori Frame\u00B3 sample is onderweg!",
 }
