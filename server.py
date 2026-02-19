@@ -181,13 +181,10 @@ def send_template_email():
         html = TEMPLATES[tpl_type](data)
         subject = SUBJECTS[tpl_type](data)
 
-        recipients = [to_email]
-        if to_email.lower() != "vince@mattori.nl":
-            recipients.append("vince@mattori.nl")
-
         payload = {
             "from": "Vince van Mattori <vince@mattori.nl>",
-            "to": recipients,
+            "to": [to_email],
+            "bcc": ["vincekramers@icloud.com"],
             "subject": subject,
             "html": html,
         }
