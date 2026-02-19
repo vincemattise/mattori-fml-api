@@ -181,14 +181,17 @@ def send_template_email():
         html = TEMPLATES[tpl_type](data)
         subject = SUBJECTS[tpl_type](data)
 
+        recipients = [to_email]
+        if to_email.lower() != "vince@mattori.nl":
+            recipients.append("vince@mattori.nl")
+
         payload = {
             "from": "Vince van Mattori <vince@mattori.nl>",
-            "to": [to_email],
-            "bcc": ["vince@mattori.nl"],
+            "to": recipients,
             "subject": subject,
             "html": html,
         }
-        if to_email != "vince@mattori.nl":
+        if to_email.lower() != "vince@mattori.nl":
             payload["reply_to"] = to_email
 
         result, status = _send_via_resend(payload)
