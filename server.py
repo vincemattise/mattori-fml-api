@@ -1,16 +1,20 @@
 """
-MATTORI FML API — Funda floorplan proxy for Shopify.
-Hosted on Railway. Fetches FML data from Funda listings.
+MATTORI API — Funda floorplan proxy + Resend email proxy for Shopify.
+Hosted on Railway.
 """
 
 import json
 import os
 import re
+import urllib.request
+import urllib.error
 from typing import Optional
 
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from curl_cffi import requests as cffi_requests
+
+RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
 
 app = Flask(__name__)
 
@@ -71,7 +75,7 @@ def extract_project_id(html: str) -> Optional[str]:
 
 @app.route("/")
 def health():
-    return jsonify({"status": "ok", "service": "MATTORI FML API"})
+    return jsonify({"status": "ok", "service": "MATTORI API", "endpoints": ["/funda-fml", "/api/send"]})
 
 
 @app.route("/funda-fml", methods=["POST"])
@@ -114,6 +118,41 @@ def funda_fml():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 200
+
+
+@app.route("/api/send", methods=["POST"])
+def send_email():
+    """Proxy email sending via Resend API."""
+    if not RESEND_API_KEY:
+        return jsonify({"error": "RESEND_API_KEY not configured"}), 500
+
+    data = request.get_json(force=True, silent=True) or {}
+
+    # Validatie
+    if not data.get("from") or not data.get("to") or not data.get("html"):
+        return jsonify({"error": "Missing required fields: from, to, html"}), 400
+
+    try:
+        payload = json.dumps(data).encode("utf-8")
+        req = urllib.request.Request(
+            "https://api.resend.com/emails",
+            data=payload,
+            headers={
+                "Authorization": f"Bearer {RESEND_API_KEY}",
+                "Content-Type": "application/json",
+                "User-Agent": "MattoriAPI/1.0",
+            },
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            body = json.loads(resp.read().decode("utf-8"))
+            return jsonify(body), resp.status
+
+    except urllib.error.HTTPError as e:
+        err_body = e.read().decode("utf-8", errors="replace")
+        return jsonify({"error": err_body}), e.code
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 if __name__ == "__main__":
