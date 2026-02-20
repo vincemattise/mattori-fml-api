@@ -107,8 +107,21 @@ def funda_fml():
         return jsonify({"error": "URL must start with http:// or https://"}), 400
 
     try:
-        # 1) Fetch Funda page
+        # 1) Fetch Funda detail page (main URL) for sale status
+        base_url = url.strip().rstrip("/")
         page_url = normalize_url(url)
+
+        # If normalize added /media/plattegrond/1, fetch main page first for title
+        sale_status = None
+        if page_url != base_url:
+            try:
+                main_resp = cffi_requests.get(base_url, impersonate="chrome", timeout=15)
+                if main_resp.status_code == 200:
+                    sale_status = extract_sale_status(main_resp.text)
+            except Exception:
+                pass  # Non-critical, continue without status
+
+        # 2) Fetch plattegrond page for projectId
         resp = cffi_requests.get(page_url, impersonate="chrome", timeout=15)
         resp.raise_for_status()
         html = resp.text
@@ -116,12 +129,16 @@ def funda_fml():
         if "Je bent bijna op de pagina die je zoekt" in html:
             return jsonify({"error": "Funda captcha — probeer het later opnieuw"}), 200
 
-        # 2) Extract projectId
+        # Also try extracting sale status from this page if not found yet
+        if not sale_status:
+            sale_status = extract_sale_status(html)
+
+        # 3) Extract projectId
         project_id = extract_project_id(html)
         if not project_id:
             return jsonify({"error": "Geen plattegrond (FML) gevonden voor deze woning"}), 200
 
-        # 3) Download FML from S3
+        # 4) Download FML from S3
         fml_url = f"{FML_S3_BASE}/{project_id}.fml"
         fml_resp = cffi_requests.get(fml_url, impersonate="chrome", timeout=15)
 
@@ -134,8 +151,6 @@ def funda_fml():
 
         result = json.loads(fml_content)
 
-        # Attach sale status from the Funda page title
-        sale_status = extract_sale_status(html)
         if sale_status:
             result["sale_status"] = sale_status
 
