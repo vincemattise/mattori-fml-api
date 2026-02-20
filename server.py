@@ -73,6 +73,24 @@ def extract_project_id(html: str) -> Optional[str]:
     return None
 
 
+def extract_sale_status(html: str) -> Optional[str]:
+    """Extract sale status from Funda page <title> tag.
+    Patterns: 'te koop', 'verkocht onder voorbehoud', 'verkocht'."""
+    m = re.search(r'<title[^>]*>([^<]+)</title>', html, re.IGNORECASE)
+    if not m:
+        return None
+    title = m.group(1).lower()
+    if 'verkocht onder voorbehoud' in title:
+        return 'Verkocht onder voorbehoud'
+    if 'verkocht' in title:
+        return 'Verkocht'
+    if 'te koop' in title:
+        return 'Te koop'
+    if 'te huur' in title:
+        return 'Te huur'
+    return None
+
+
 @app.route("/")
 def health():
     return jsonify({"status": "ok", "service": "MATTORI API", "endpoints": ["/funda-fml", "/api/send", "/api/mail"]})
@@ -114,7 +132,14 @@ def funda_fml():
         if not fml_content.strip().startswith("{"):
             return jsonify({"error": "Ongeldig FML bestand"}), 200
 
-        return jsonify(json.loads(fml_content))
+        result = json.loads(fml_content)
+
+        # Attach sale status from the Funda page title
+        sale_status = extract_sale_status(html)
+        if sale_status:
+            result["sale_status"] = sale_status
+
+        return jsonify(result)
 
     except Exception as e:
         return jsonify({"error": str(e)}), 200
