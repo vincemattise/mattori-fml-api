@@ -67,6 +67,7 @@ def sample_bevestiging(d):
     funda = _esc(d.get("funda_link", ""))
     adres = _esc(d.get("adres", ""))
     logo = _esc(d.get("logo", "-"))
+    opmerkingen = _esc(d.get("opmerkingen", "-"))
 
     return (
         _HEAD.format(title="Je sample aanvraag is ontvangen")
@@ -90,7 +91,8 @@ def sample_bevestiging(d):
             + _detail_row("Telefoon", telefoon)
             + _detail_row("Funda-link", funda)
             + _detail_row("Afleveradres", adres)
-            + _detail_row("Logo", logo, last=True)
+            + _detail_row("Logo", logo)
+            + _detail_row("Bericht", opmerkingen, last=True)
         )
         + '</td></tr>'
         + _DIVIDER
@@ -104,12 +106,22 @@ def sample_bevestiging(d):
 def contact_opvolging(d):
     naam = _esc(d.get("naam", ""))
     bedrijf = _esc(d.get("bedrijf", ""))
+    opmerkingen = _esc(d.get("opmerkingen", "-"))
 
     return (
         _HEAD.format(title="Leuk dat je interesse hebt")
         + _LOGO
         + f'<h1 style="font-size:24px;font-weight:800;color:#1a1a1a;margin:0 0 12px 0;letter-spacing:-0.8px;line-height:1.2;">Leuk dat je interesse hebt, {naam}</h1>'
         + f'<p style="font-size:15px;color:#777;line-height:1.6;margin:0;">We maken graag een gratis Mattori Frame\u00B3 sample voor je. Stuur onderstaande gegevens als reactie op deze mail, dan gaan we direct aan de slag.</p>'
+        + '</td></tr>'
+        + _DIVIDER
+        + '<tr><td style="padding:0 40px;">'
+        + '<p style="font-size:13px;font-weight:600;color:#aaa;letter-spacing:0.5px;margin:0 0 16px 0;text-transform:uppercase;">Je gegevens</p>'
+        + _detail_card(
+            _detail_row("Naam", naam)
+            + _detail_row("Bedrijf", bedrijf)
+            + _detail_row("Bericht", opmerkingen, last=True)
+        )
         + '</td></tr>'
         + _DIVIDER
         + '<tr><td style="padding:0 40px;">'
@@ -120,6 +132,54 @@ def contact_opvolging(d):
         + '</td></tr>'
         + _DIVIDER
         + f'<tr><td style="padding:0 40px;text-align:center;"><p style="font-size:13px;color:#aaa;margin:0;">Reply op deze mail, stuur een berichtje via <a href="https://wa.me/31683807190" style="color:#1a1a1a;text-decoration:underline;font-weight:600;">WhatsApp</a><br>of mail naar <a href="mailto:vince@mattori.nl?subject=Sample%20aanvraag%20{quote(bedrijf)}" style="color:#1a1a1a;text-decoration:underline;font-weight:600;">vince@mattori.nl</a></p></td></tr>'
+        + _FOOTER
+    )
+
+
+# ─── TEMPLATE: herinnering contact ───
+
+def _checked_item(label):
+    return f"""<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#fafaf8;border-radius:10px;margin-bottom:10px;">
+<tr><td style="padding:14px 16px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+<td width="30" valign="top"><div style="width:22px;height:22px;background:#2d8a4e;border-radius:6px;text-align:center;line-height:22px;color:#fff;font-size:13px;">\u2713</div></td>
+<td style="padding-left:10px;"><p style="font-size:14px;font-weight:700;color:#1a1a1a;margin:0;">{label}</p></td></tr></table></td></tr></table>"""
+
+def _unchecked_item(title, desc):
+    return f"""<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#fafaf8;border-radius:10px;margin-bottom:10px;">
+<tr><td style="padding:14px 16px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+<td width="30" valign="top"><div style="width:22px;height:22px;border:2px solid #ccc;border-radius:6px;"></div></td>
+<td style="padding-left:10px;"><p style="font-size:14px;font-weight:700;color:#1a1a1a;margin:0 0 2px 0;">{title}</p>
+<p style="font-size:13px;color:#777;line-height:1.5;margin:0;">{desc}</p></td></tr></table></td></tr></table>"""
+
+
+def herinnering_contact(d):
+    naam = _esc(d.get("naam", ""))
+    mail_subject = quote(f"Sample aanvraag \u2014 {naam}")
+    mail_body = quote("Hoi Mattori,\n\nHier zijn de gegevens:\n\n1. Funda-link: \n2. Afleveradres: \n3. Logo (optioneel): \n")
+
+    return (
+        _HEAD.format(title="We hebben enkel dit nog nodig om je sample te kunnen maken")
+        + _LOGO
+        + f'<h1 style="font-size:24px;font-weight:800;color:#1a1a1a;margin:0 0 12px 0;letter-spacing:-0.8px;line-height:1.2;">We hebben enkel dit nog nodig om je sample te kunnen maken</h1>'
+        + f'<p style="font-size:15px;color:#777;line-height:1.6;margin:0;">Hey {naam}, kort geleden stuurden we je een mail over je gratis Mattori Frame\u00B3 sample. We missen nog een paar gegevens om aan de slag te gaan.</p>'
+        + '</td></tr>'
+        + _DIVIDER
+        # Overzicht
+        + '<tr><td style="padding:0 40px;">'
+        + '<p style="font-size:13px;font-weight:600;color:#aaa;letter-spacing:0.5px;margin:0 0 16px 0;text-transform:uppercase;">Overzicht</p>'
+        + _checked_item("Contactgegevens")
+        + _unchecked_item("Een Funda-link", "De link naar de woning waarvan je een Frame\u00B3 wilt. Ga naar funda.nl, zoek de woning op en kopieer de link uit je adresbalk.")
+        + _unchecked_item("Je afleveradres", "Waar mogen we de sample naartoe sturen?")
+        + _unchecked_item('Je logo <span style="font-weight:500;color:#aaa;font-size:12px;">(optioneel)</span>', "Wil je jouw logo op het frame? Stuur het mee als bijlage of link. PNG of SVG werkt het best.")
+        + '</td></tr>'
+        + _DIVIDER
+        # CTA knop
+        + '<tr><td style="padding:0 40px;">'
+        + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#fafaf8;border-radius:10px;">'
+        + f'<tr><td style="padding:24px 20px;text-align:center;"><a href="mailto:vince@mattori.nl?subject={mail_subject}&body={mail_body}" style="display:inline-block;background:#1a1a1a;color:#ffffff;padding:14px 28px;border-radius:10px;font-size:14px;font-weight:600;text-decoration:none;">Stuur je gegevens \u2192</a></td></tr></table>'
+        + '</td></tr>'
+        # Contact
+        + '<tr><td style="padding:28px 40px 0 40px;text-align:center;"><p style="font-size:13px;color:#aaa;margin:0;">Of stuur een berichtje via <a href="https://wa.me/31683807190" style="color:#1a1a1a;text-decoration:underline;font-weight:600;">WhatsApp</a></p></td></tr>'
         + _FOOTER
     )
 
@@ -174,11 +234,13 @@ def verzendbevestiging(d):
 TEMPLATES = {
     "sample": sample_bevestiging,
     "contact": contact_opvolging,
+    "herinnering": herinnering_contact,
     "verzending": verzendbevestiging,
 }
 
 SUBJECTS = {
     "sample": lambda d: "Je Mattori Frame\u00B3 sample aanvraag is ontvangen",
     "contact": lambda d: "We hebben alleen dit nog nodig om je sample te maken",
+    "herinnering": lambda d: "Je gratis Mattori Frame\u00B3 sample \u2014 we missen nog een paar gegevens",
     "verzending": lambda d: "Je Mattori Frame\u00B3 sample is onderweg!",
 }
