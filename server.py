@@ -93,7 +93,7 @@ def extract_sale_status(html: str) -> Optional[str]:
 
 @app.route("/")
 def health():
-    return jsonify({"status": "ok", "service": "MATTORI API", "endpoints": ["/funda-fml", "/api/send", "/api/mail"]})
+    return jsonify({"status": "ok", "service": "MATTORI API", "endpoints": ["/funda-fml", "/api/send", "/api/mail", "/api/feedback"]})
 
 
 @app.route("/funda-fml", methods=["POST"])
@@ -234,6 +234,44 @@ def send_template_email():
         result, status = _send_via_resend(payload)
         return jsonify(result), status
 
+    except urllib.error.HTTPError as e:
+        err_body = e.read().decode("utf-8", errors="replace")
+        return jsonify({"error": err_body}), e.code
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/feedback", methods=["POST"])
+def feedback():
+    """Receive configurator feedback and email it to the team."""
+    if not RESEND_API_KEY:
+        return jsonify({"error": "RESEND_API_KEY not configured"}), 500
+
+    body = request.get_json(force=True, silent=True) or {}
+    message = (body.get("message") or "").strip()
+    page = body.get("page", "")
+    ua = body.get("ua", "")
+
+    if not message:
+        return jsonify({"error": "Missing message"}), 400
+
+    html = (
+        "<div style='font-family:sans-serif;max-width:600px'>"
+        f"<h2 style='margin:0 0 12px'>Configurator feedback</h2>"
+        f"<p style='white-space:pre-wrap;margin:0 0 16px'>{message}</p>"
+        "<hr style='border:none;border-top:1px solid #eee;margin:16px 0'>"
+        f"<p style='color:#999;font-size:12px;margin:0'>Pagina: {page}<br>UA: {ua}</p>"
+        "</div>"
+    )
+
+    try:
+        result, status = _send_via_resend({
+            "from": "Mattori Configurator <vince@mattori.nl>",
+            "to": ["vince@mattori.nl"],
+            "subject": "Configurator feedback",
+            "html": html,
+        })
+        return jsonify(result), status
     except urllib.error.HTTPError as e:
         err_body = e.read().decode("utf-8", errors="replace")
         return jsonify({"error": err_body}), e.code
