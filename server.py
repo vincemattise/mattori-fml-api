@@ -249,17 +249,21 @@ def feedback():
 
     body = request.get_json(force=True, silent=True) or {}
     message = (body.get("message") or "").strip()
+    step = body.get("step", "")
     page = body.get("page", "")
     ua = body.get("ua", "")
 
     if not message:
         return jsonify({"error": "Missing message"}), 400
 
+    step_line = f"<p style='color:#999;font-size:12px;margin:0 0 8px'>Stap: {step}</p>" if step else ""
+
     html = (
         "<div style='font-family:sans-serif;max-width:600px'>"
-        f"<h2 style='margin:0 0 12px'>Configurator feedback</h2>"
+        f"<h2 style='margin:0 0 12px'>Maak je eigen Frame\u00B3 feedback</h2>"
         f"<p style='white-space:pre-wrap;margin:0 0 16px'>{message}</p>"
         "<hr style='border:none;border-top:1px solid #eee;margin:16px 0'>"
+        f"{step_line}"
         f"<p style='color:#999;font-size:12px;margin:0'>Pagina: {page}<br>UA: {ua}</p>"
         "</div>"
     )
@@ -268,7 +272,7 @@ def feedback():
         result, status = _send_via_resend({
             "from": "Mattori Configurator <vince@mattori.nl>",
             "to": ["vince@mattori.nl"],
-            "subject": "Configurator feedback",
+            "subject": f"Frame\u00B3 feedback \u2014 stap {step}" if step else "Frame\u00B3 feedback",
             "html": html,
         })
         return jsonify(result), status
