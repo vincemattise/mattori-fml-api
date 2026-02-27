@@ -3,14 +3,17 @@ MATTORI API — Funda floorplan proxy + Resend email proxy for Shopify.
 Hosted on Railway.
 """
 
+import base64
+import hashlib
 import json
 import os
 import re
 import urllib.request
 import urllib.error
+from pathlib import Path
 from typing import Optional
 
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_file
 from flask_cors import CORS
 from curl_cffi import requests as cffi_requests
 
@@ -93,7 +96,7 @@ def extract_sale_status(html: str) -> Optional[str]:
 
 @app.route("/")
 def health():
-    return jsonify({"status": "ok", "service": "MATTORI API", "endpoints": ["/funda-fml", "/api/send", "/api/mail", "/api/feedback"]})
+    return jsonify({"status": "ok", "service": "MATTORI API", "endpoints": ["/funda-fml", "/api/send", "/api/mail", "/api/feedback", "/upload-preview", "/preview/<id>"]})
 
 
 @app.route("/funda-fml", methods=["POST"])
@@ -281,6 +284,64 @@ def feedback():
         return jsonify({"error": err_body}), e.code
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+# ── Preview screenshot storage ──
+# Use Railway Volume mount if available (/data), otherwise fallback to local dir.
+PREVIEW_DIR = Path(os.environ.get("PREVIEW_DIR", "/data/previews"))
+PREVIEW_DIR.mkdir(parents=True, exist_ok=True)
+
+RAILWAY_PUBLIC_URL = os.environ.get(
+    "RAILWAY_PUBLIC_DOMAIN",
+    "web-production-89353.up.railway.app"
+)
+
+
+@app.route("/upload-preview", methods=["POST"])
+def upload_preview():
+    """Receive base64 JPEG screenshot, save to disk, return public URL."""
+    body = request.get_json(force=True, silent=True) or {}
+    image_data = body.get("image", "")
+
+    if not image_data:
+        return jsonify({"error": "Missing 'image' field"}), 400
+
+    # Strip data-URL prefix if present (e.g. "data:image/jpeg;base64,...")
+    if "," in image_data:
+        image_data = image_data.split(",", 1)[1]
+
+    try:
+        raw = base64.b64decode(image_data)
+    except Exception:
+        return jsonify({"error": "Invalid base64 data"}), 400
+
+    # Limit size: ~2 MB max
+    if len(raw) > 2 * 1024 * 1024:
+        return jsonify({"error": "Image too large (max 2 MB)"}), 400
+
+    # Generate unique filename from content hash
+    file_hash = hashlib.sha256(raw).hexdigest()[:16]
+    filename = f"{file_hash}.jpg"
+    filepath = PREVIEW_DIR / filename
+
+    filepath.write_bytes(raw)
+
+    url = f"https://{RAILWAY_PUBLIC_URL}/preview/{filename}"
+    return jsonify({"url": url}), 200
+
+
+@app.route("/preview/<filename>")
+def serve_preview(filename):
+    """Serve a saved preview screenshot."""
+    # Sanitize filename — only allow hex chars + .jpg
+    if not re.match(r'^[a-f0-9]{16}\.jpg$', filename):
+        return jsonify({"error": "Invalid filename"}), 400
+
+    filepath = PREVIEW_DIR / filename
+    if not filepath.exists():
+        return jsonify({"error": "Preview not found"}), 404
+
+    return send_file(filepath, mimetype="image/jpeg", max_age=86400 * 365)
 
 
 if __name__ == "__main__":
