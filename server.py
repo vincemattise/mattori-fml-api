@@ -315,9 +315,9 @@ def upload_preview():
     except Exception:
         return jsonify({"error": "Invalid base64 data"}), 400
 
-    # Limit size: ~2 MB max
-    if len(raw) > 2 * 1024 * 1024:
-        return jsonify({"error": "Image too large (max 2 MB)"}), 400
+    # Limit size: ~5 MB max
+    if len(raw) > 5 * 1024 * 1024:
+        return jsonify({"error": "Image too large (max 5 MB)"}), 400
 
     # Generate unique filename from content hash
     file_hash = hashlib.sha256(raw).hexdigest()[:16]
