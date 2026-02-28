@@ -96,7 +96,7 @@ def extract_sale_status(html: str) -> Optional[str]:
 
 @app.route("/")
 def health():
-    return jsonify({"status": "ok", "service": "MATTORI API", "endpoints": ["/funda-fml", "/api/send", "/api/mail", "/api/feedback", "/upload-preview", "/preview/<id>"]})
+    return jsonify({"status": "ok", "service": "MATTORI API", "endpoints": ["/funda-fml", "/api/send", "/api/mail", "/api/feedback", "/upload-preview", "/preview/<id>", "/upload-fml", "/fml-file/<id>"]})
 
 
 @app.route("/funda-fml", methods=["POST"])
@@ -342,6 +342,54 @@ def serve_preview(filename):
         return jsonify({"error": "Preview not found"}), 404
 
     return send_file(filepath, mimetype="image/jpeg", max_age=86400 * 365)
+
+
+# ── FML file storage ──
+FML_DIR = Path(os.environ.get("FML_DIR", "/data/fml"))
+FML_DIR.mkdir(parents=True, exist_ok=True)
+
+
+@app.route("/upload-fml", methods=["POST"])
+def upload_fml():
+    """Receive FML JSON data, save to disk, return public URL."""
+    body = request.get_json(force=True, silent=True) or {}
+    fml_data = body.get("fml")
+
+    if not fml_data:
+        return jsonify({"error": "Missing 'fml' field"}), 400
+
+    try:
+        raw = json.dumps(fml_data).encode("utf-8")
+    except Exception:
+        return jsonify({"error": "Invalid JSON data"}), 400
+
+    # Limit size: ~1 MB max
+    if len(raw) > 1 * 1024 * 1024:
+        return jsonify({"error": "FML too large (max 1 MB)"}), 400
+
+    # Generate unique filename from content hash
+    file_hash = hashlib.sha256(raw).hexdigest()[:16]
+    filename = f"{file_hash}.fml"
+    filepath = FML_DIR / filename
+
+    filepath.write_bytes(raw)
+
+    url = f"https://{RAILWAY_PUBLIC_URL}/fml-file/{filename}"
+    return jsonify({"url": url}), 200
+
+
+@app.route("/fml-file/<filename>")
+def serve_fml(filename):
+    """Serve a saved FML file."""
+    if not re.match(r'^[a-f0-9]{16}\.fml$', filename):
+        return jsonify({"error": "Invalid filename"}), 400
+
+    filepath = FML_DIR / filename
+    if not filepath.exists():
+        return jsonify({"error": "FML not found"}), 404
+
+    return send_file(filepath, mimetype="application/json", max_age=86400 * 365,
+                     as_attachment=True, download_name=filename)
 
 
 if __name__ == "__main__":
