@@ -91,7 +91,7 @@ def sample_bevestiging(d):
             + _detail_row("Bedrijf", bedrijf)
             + _detail_row("E-mail", email)
             + _detail_row("Telefoon", telefoon)
-            + _detail_row("Kleur", kleur)
+            + _detail_row("Kleur plattegronden", kleur)
             + _detail_row("Taal", taal)
             + _detail_row("Funda-link", funda)
             + _detail_row("Afleveradres", adres)
@@ -126,7 +126,7 @@ def contact_opvolging(d):
         + _detail_card(
             _detail_row("Naam", naam)
             + _detail_row("Bedrijf", bedrijf)
-            + _detail_row("Kleur", kleur)
+            + _detail_row("Kleur plattegronden", kleur)
             + _detail_row("Taal", taal)
             + _detail_row("Bericht", opmerkingen, last=True)
         )
