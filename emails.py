@@ -64,6 +64,8 @@ def sample_bevestiging(d):
     bedrijf = _esc(d.get("bedrijf", ""))
     email = _esc(d.get("email", ""))
     telefoon = _esc(d.get("telefoon", "-"))
+    kleur = _esc(d.get("kleur", "-"))
+    taal = _esc(d.get("taal", "-"))
     funda = _esc(d.get("funda_link", ""))
     adres = _esc(d.get("adres", ""))
     logo = _esc(d.get("logo", "-"))
@@ -89,6 +91,8 @@ def sample_bevestiging(d):
             + _detail_row("Bedrijf", bedrijf)
             + _detail_row("E-mail", email)
             + _detail_row("Telefoon", telefoon)
+            + _detail_row("Kleur", kleur)
+            + _detail_row("Taal", taal)
             + _detail_row("Funda-link", funda)
             + _detail_row("Afleveradres", adres)
             + _detail_row("Logo", logo)
@@ -106,6 +110,8 @@ def sample_bevestiging(d):
 def contact_opvolging(d):
     naam = _esc(d.get("naam", ""))
     bedrijf = _esc(d.get("bedrijf", ""))
+    kleur = _esc(d.get("kleur", "-"))
+    taal = _esc(d.get("taal", "-"))
     opmerkingen = _esc(d.get("opmerkingen", "-"))
 
     return (
@@ -120,6 +126,8 @@ def contact_opvolging(d):
         + _detail_card(
             _detail_row("Naam", naam)
             + _detail_row("Bedrijf", bedrijf)
+            + _detail_row("Kleur", kleur)
+            + _detail_row("Taal", taal)
             + _detail_row("Bericht", opmerkingen, last=True)
         )
         + '</td></tr>'
