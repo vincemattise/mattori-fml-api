@@ -241,6 +241,7 @@ def feedback():
     body = request.get_json(force=True, silent=True) or {}
     message = (body.get("message") or "").strip()
     step = body.get("step", "")
+    funda = (body.get("funda") or "").strip()
     page = body.get("page", "")
     ua = body.get("ua", "")
 
@@ -248,6 +249,7 @@ def feedback():
         return jsonify({"error": "Missing message"}), 400
 
     step_line = f"<p style='color:#999;font-size:12px;margin:0 0 8px'>Stap: {step}</p>" if step else ""
+    funda_line = f"<p style='color:#999;font-size:12px;margin:0 0 8px'>Funda: <a href=\"{funda}\">{funda}</a></p>" if funda else ""
 
     html = (
         "<div style='font-family:sans-serif;max-width:600px'>"
@@ -255,6 +257,7 @@ def feedback():
         f"<p style='white-space:pre-wrap;margin:0 0 16px'>{message}</p>"
         "<hr style='border:none;border-top:1px solid #eee;margin:16px 0'>"
         f"{step_line}"
+        f"{funda_line}"
         f"<p style='color:#999;font-size:12px;margin:0'>Pagina: {page}<br>UA: {ua}</p>"
         "</div>"
     )
